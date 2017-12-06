@@ -1,0 +1,15 @@
+変数宣言　文字列{ &File , &StrPath , &TblFile , &TblName ,&CsvPath, &K3Path}, 長整数{ &i = 0 }, 整数{ &test}
+/* 全てのテーブルをCSV出力する　ついでに属性もk3ファイルで出力 */
+繰り返し
+　　&i = &i + 1
+　　&StrPath = #連結(#一括パス名, "*.tbl")
+　　&TblFile = #ファイル検索( &StrPath, &i )
+　　条件　( "" = &TblFile )　繰り返し中止
+　　&TblName = #ファイル名(&TblFile, 2)
+　　表　&TblName モード=参照
+　　&CsvPath = #文字置換　(&TblFile, ".tbl", ".csv")
+　　書き出し　 CSV，&CsvPath，項目名=する，表示条件=する，終了状態=&test，* 
+    &K3Path = #文字置換(&TblFile, ".tbl", ".k3")
+    書き出し　定義，&TblName，&K3Path
+　　終了　表　編集対象表
+繰り返し終了
