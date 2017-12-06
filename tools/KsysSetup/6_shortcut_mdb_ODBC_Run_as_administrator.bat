@@ -1,3 +1,4 @@
+rem ファイルを右クリック→管理者権限で実行してください
 rem システムDSN　32ビット　管理者権限でバッチ起動しそのあとユーザ名とパスワード設定が必要
 odbcconf /A {CONFIGSYSDSN "SQL Server" "DSN=JPLSG_SV1|DATABASE=JPLSG|SERVER=RINKEN-SV2"}
 odbcconf /A {CONFIGSYSDSN "SQL Server" "DSN=JPLSG_SV2|DATABASE=JPLSG_V2|SERVER=RINKEN-SV2"}
