@@ -1,10 +1,1 @@
-aronas_login Readme
-
-ARONAS‚ÉƒƒOƒCƒ“‚·‚é‚½‚ß‚Ìƒoƒbƒ`ƒtƒ@ƒCƒ‹‚Å‚·B
-
-set USR=‚Ì‚Æ‚±‚ë‚É‚ÍAÚ‘±‚·‚éƒ†[ƒU[–¼‚ð‹LÚ‚µ‚Ä‚­‚¾‚³‚¢B
-IPƒAƒhƒŒƒX‚ÍƒZƒOƒƒ“ƒg‚ªˆá‚¤ê‡‚ÍC³‚µ‚Ä‚­‚¾‚³‚¢B
-
-C³‚·‚él‚Ö
-“ú–{Œê‚ðƒtƒ@ƒCƒ‹“à‚É‹LÚ‚·‚é‚ÆGithub‚ÉUPŒãƒ_ƒEƒ“ƒ[ƒh‚µ‚Ä‚àƒoƒbƒ`ƒtƒ@ƒCƒ‹‚ªŽÀs‚Å‚«‚È‚­‚È‚è‚Ü‚·B
-i‰üsƒR[ƒh‚ÌŠÖŒW‚ÆŽv‚í‚ê‚Ü‚·j‚²’ˆÓ‚­‚¾‚³‚¢B
+æ‹¡å¼µå­.txtã®ãƒ•ã‚¡ã‚¤ãƒ«åã¨ãƒ•ã‚¡ã‚¤ãƒ«å†…å®¹ã‚’ãƒªã‚¹ãƒˆã«ã—ã¾ã™ã€‚
