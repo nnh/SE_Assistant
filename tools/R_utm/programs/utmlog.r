@@ -1,21 +1,3 @@
-kIpAddr <- paste0("(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])", "\\", ".){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])")
-kDhcp_header <- c("IP", "v2", "MAC-Address", "Hostname", "v5", "v6", "v7", "VCI", "v9", "v10", "Expiry")
-#' @title
-#' ReadLog
-#' @param
-#' input_file_path : Full path of csv to read
-#' @return
-#' String vector
-ReadLog <- function(input_file_path){
-  con <- file(description=input_file_path, open="rt")
-  if (os == "unix"){
-    lines <- iconv(readLines(con=con, encoding="utf-8"), from ="utf-8",  to = "utf-8")
-  } else{
-    lines <- iconv(readLines(con=con, encoding="utf-8"), from ="utf-8",  to = "cp932")
-  }
-  close(con=con)
-  return(lines)
-}
 bbb <- function(input_file){
   for (i in 1:length(input_file)){
     temp_header <- str_extract(input_file[i], pattern="###.*###")
@@ -54,17 +36,14 @@ for (i in 1:length(list_dhcp)){
 }
 df_dhcp <- data.frame(matrix(unlist(list_dhcp), nrow=length(list_dhcp), byrow=T), stringsAsFactors=F)
 colnames(df_dhcp) <- kDhcp_header
-# read utm log
-input_path <- str_c(parent_path, "/input")
-file_list <- list.files(input_path)
-input_file_path <- str_c(input_path, "/", file_list)
-log_list <- sapply(input_file_path, ReadLog)
+# Get owner from hostname
+dynamic_pc <- left_join(sinet_table, df_dhcp, by=c("コンピュータ名"="Hostname"))
+dynamic_pc <- select(dynamic_pc, "使用者名", "部署名", "コンピュータ名", "IP", "MAC-Address")
+
+
+
 for (i in 1:length(log_list)){
-  print(file_list[i])
-  temp <- str_replace_all(log_list[[i]], pattern='\"', replacement="")
+#  print(file_list[i])
+#  temp <- str_replace_all(log_list[[i]], pattern='\"', replacement="")
   bbb(temp)
 }
-#str_subset(log_list[[1]][1], "###.*###")
-#str_subset(log_list[[1]][2], "###")
-#str_extract(log_list[[1]][1], pattern="###.*###")
-# /^(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/
