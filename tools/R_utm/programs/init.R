@@ -1,0 +1,4 @@
+install.packages("tidyverse")
+install.packages("googlesheets")
+install.packages("ssh")
+install.packages("here")

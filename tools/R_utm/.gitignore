@@ -1,0 +1,11 @@
+.httr-oauth
+/input/
+/ext/
+/output/
+### R ###
+*.Rproj
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
