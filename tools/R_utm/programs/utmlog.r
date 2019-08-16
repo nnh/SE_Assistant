@@ -26,19 +26,6 @@ bbb <- function(input_file){
     }
   }
 }
-# Format DHCP list
-list_dhcp_raw <- read_lines_raw(dhcp_raw[[2]])
-list_dhcp <- lapply(list_dhcp_raw, rawToChar)
-list_dhcp <- lapply(list_dhcp, function(x){str_split_fixed(x, pattern="\t", 11)})
-# Remove the space before the IP address
-for (i in 1:length(list_dhcp)){
-  list_dhcp[[i]][1] <- trimws(list_dhcp[[i]][1])
-}
-df_dhcp <- data.frame(matrix(unlist(list_dhcp), nrow=length(list_dhcp), byrow=T), stringsAsFactors=F)
-colnames(df_dhcp) <- kDhcp_header
-# Get owner from hostname
-dynamic_pc <- left_join(sinet_table, df_dhcp, by=c("コンピュータ名"="Hostname"))
-dynamic_pc <- select(dynamic_pc, "使用者名", "部署名", "コンピュータ名", "IP", "MAC-Address")
 
 
 
