@@ -66,6 +66,9 @@ IntToBitVect <- function(x){
   temp <- rev(as.numeric(intToBits(x))[1:8])
   return(temp)
 }
+BitVectToInt<-function(x) {
+  packBits(rev(c(rep(FALSE, 32-length(x)%%32), as.logical(x))), "integer")
+}
 # Constant definition
 kTargetLog <- c("Admin and System Events Report without guest",
                 "Application and Risk Analysis without guest",
@@ -145,31 +148,46 @@ private_ip <- bind_rows(static_ip, dynamic_ip)
 # Get Whitelist and Blacklist
 raw_excluded <- read.csv(str_c(ext_path, "/excluded.csv"), as.is=T)
 # ネットワーク部のIP一覧を作成する
-excluded <- raw_excluded$IP %>% str_split_fixed(pattern="/", n=2) %>% data.frame(stringsAsFactors=F) %>% cbind(raw_excluded$Description)
+excluded <- raw_excluded$IP %>% str_split_fixed(pattern="/", n=2) %>% data.frame(stringsAsFactors=F) %>% cbind(raw_excluded$Description, stringsAsFactors=F)
 colnames(excluded) <- c("IP", "Subnet_mask", "Description")
 temp_excluded <- excluded %>% filter(Subnet_mask != "")
 
+Rbind_ip_list <- function(input_bit_ip, network_octet, description){
+  output_bit_ip <- rep(0, 32)
+  output_bit_ip[1:network_octet] <- input_bit_ip[1:network_octet]
+  # Convert binary to decimal
+  output_ip <- str_c(BitVectToInt(output_bit_ip[1:8]), ".",
+                     BitVectToInt(output_bit_ip[9:16]), ".",
+                     BitVectToInt(output_bit_ip[17:24]), ".",
+                     BitVectToInt(output_bit_ip[25:32]))
+  temp_row <- c(output_ip, "", description)
+  names(temp_row) <- colnames(excluded)
+  excluded <<- bind_rows(excluded, temp_row)
+}
+
 for (i in 1:nrow(temp_excluded)){
   output_bit_ip <- rep(NA, 32)
+  # IPアドレスをビットに変換
   bit_ip <- temp_excluded[i, "IP"] %>% str_split(pattern="\\." ) %>% unlist %>% lapply(IntToBitVect) %>% unlist
   num_subnet_mask <- as.numeric(temp_excluded[i, "Subnet_mask"])
-  bit_subnet <- c(rep(1, num_subnet_mask), rep(0, 32 - num_subnet_mask))
-  if (num_subnet_mask >=8){
-    output_bit_ip[1:8] <- bit_ip[1:8]
-    if (num_subnet_mask >=16){
-      output_bit_ip[9:16] <- bit_ip[9:16]
-      if (num_subnet_mask >=24){
-        output_bit_ip[17:24] <- bit_ip[17:24]
-      } else {
-        temp_num_subnet <- 24 - num_subnet_mask
-        temp_subnet <- bit_ip[17:temp_num_subnet]
-        temp_start <- temp_subnet
-        temp_start[is.na(temp_start)] <- 0
-        temp_end <- temp_subnet
-        temp_end[is.na(temp_end)] <- 1
-      }
+#  network_octet <- (num_subnet_mask %/% 8) * 8
+#  output_bit_ip[1:network_octet] <- bit_ip[1:network_octet]
+  temp_host <- num_subnet_mask %% 8
+  # ネットワーク部範囲内のIPアドレスを取得
+  if (temp_host > 0){
+    network_octet <- (num_subnet_mask %/% 8) * 8
+    output_bit_ip[1:network_octet] <- bit_ip[1:network_octet]
+    # bin to dec
+    temp_subnet <- c(rep(1, temp_host), rep(0, 8 - temp_host)) %>% BitVectToInt
+    temp_start <- network_octet + 1
+    temp_end <- network_octet + 8
+    for (j in temp_subnet:255){
+      output_bit_ip[temp_start:temp_end] <- IntToBitVect(j)
+      Rbind_ip_list(output_bit_ip, temp_end, temp_excluded[i, "Description"])
     }
-  }
+  }# else {
+  #  Rbind_ip_list(output_bit_ip, network_octet, temp_excluded[i, "Description"])
+  #}
 }
 # IPテーブルのNAを空白に置換しないと結果が欠落する
 #test <- private_ip
