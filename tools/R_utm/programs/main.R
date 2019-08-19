@@ -72,7 +72,8 @@ kTargetLog <- c("Admin and System Events Report without guest",
                 "Bandwidth and Applications Report without guest",
                 "Client Reputation without guest",
                 "User Report without guest")
-kIpAddr <- paste0("(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])", "\\", ".){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])")
+# kIpAddr <- paste0("(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])", "\\", ".){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])")
+kIpAddr <- "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
 kDhcp_header <- c("IP", "v2", "MAC-Address", "Hostname", "v5", "v6", "v7", "VCI", "v9", "v10", "Expiry")
 # Get project path
 os <- .Platform$OS.type  # mac or windows
@@ -87,7 +88,6 @@ log_obj_name <- make.names(kTargetLog)
 
 AddUserInfo <- function(raw_log){
   input_file <- str_replace_all(raw_log, pattern='\"', replacement="")
-  print(str(input_file))
   output_file <- input_file
   # eofまで
   for (i in 1:length(input_file)){
@@ -95,14 +95,13 @@ AddUserInfo <- function(raw_log){
     str_log <- unlist(strsplit(input_file[i], ","))
     # Outputs host name if IP address
     temp_row <- str_extract(str_log, kIpAddr)
-    temp_ip <- temp_row[!is.na(temp_row)]
     # Remove duplicate columns
-    temp_ip <- unique(temp_ip)
+    temp_ip <- temp_row[!is.na(temp_row)] %>% unique
     # その行にIPアドレスが含まれていたらホスト名と所属を取得する
     if (!(identical(temp_ip, character(0)))){
       temp_ip_row <- filter(private_ip, IP==temp_ip)
       if (nrow(temp_ip_row) == 1){
-        output_file[i] <- str_c(output_file[i], ",",temp_ip_row$Hostname, ",", temp_ip_row$User, ",",temp_ip_row$Department)
+        output_file[i] <- str_c(output_file[i], ",",temp_ip_row$Hostname, ",", temp_ip_row$User, "," ,temp_ip_row$Department)
       } else if (nrow(temp_ip_row) > 1){
         # 重複ありのとき
       }
@@ -139,8 +138,8 @@ sinet_table$Duplicate <- ifelse(sinet_table$Hostname %in% duplicate_hostname, T,
 dynamic_ip <- left_join(sinet_table, df_dhcp, by="Hostname") %>% select(User="使用者名", Department="部署名", "Hostname", "IP", MAC_Address="MAC-Address", "Duplicate")
 # Get Static IP list
 static_ip <- read.csv(str_c(ext_path, "/static_ip.csv"), as.is=T)
-static_ip$Department <- NA
-static_ip$Duplicate <- NA
+static_ip$Department <- ""
+static_ip$Duplicate <- F
 static_ip <- static_ip %>% select(User="所有者", "Department", "Hostname", "IP", MAC_Address="MAC.Address", "Duplicate")
 private_ip <- bind_rows(static_ip, dynamic_ip)
 # Get Whitelist and Blacklist
@@ -151,13 +150,32 @@ colnames(excluded) <- c("IP", "Subnet_mask", "Description")
 temp_excluded <- excluded %>% filter(Subnet_mask != "")
 
 for (i in 1:nrow(temp_excluded)){
+  output_bit_ip <- rep(NA, 32)
   bit_ip <- temp_excluded[i, "IP"] %>% str_split(pattern="\\." ) %>% unlist %>% lapply(IntToBitVect) %>% unlist
   num_subnet_mask <- as.numeric(temp_excluded[i, "Subnet_mask"])
   bit_subnet <- c(rep(1, num_subnet_mask), rep(0, 32 - num_subnet_mask))
+  if (num_subnet_mask >=8){
+    output_bit_ip[1:8] <- bit_ip[1:8]
+    if (num_subnet_mask >=16){
+      output_bit_ip[9:16] <- bit_ip[9:16]
+      if (num_subnet_mask >=24){
+        output_bit_ip[17:24] <- bit_ip[17:24]
+      } else {
+        temp_num_subnet <- 24 - num_subnet_mask
+        temp_subnet <- bit_ip[17:temp_num_subnet]
+        temp_start <- temp_subnet
+        temp_start[is.na(temp_start)] <- 0
+        temp_end <- temp_subnet
+        temp_end[is.na(temp_end)] <- 1
+      }
+    }
+  }
 }
+# IPテーブルのNAを空白に置換しないと結果が欠落する
+#test <- private_ip
+#test[is.na(test)] <- ""
 # ホスト名などの情報を付与する
 output_list <- sapply(raw_log_list, AddUserInfo)
-
 # Delete all objects
 rm(list = ls())
 
