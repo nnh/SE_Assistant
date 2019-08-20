@@ -85,6 +85,7 @@ BitVectToInt<-function(x) {
 #' List of logs
 AddUserInfo <- function(raw_log, ip_list){
   output_file <- str_replace_all(raw_log, pattern='\"', replacement="")
+  partial_ip_list <- filter(ip_list, !(str_detect(ip_list$IP, pattern=kIpAddr)))
   for (i in 1:length(output_file)){
     # Determine if an IP address is included
     temp_row <- unlist(strsplit(output_file[i], ",")) %>% str_extract(kIpAddr)
@@ -92,12 +93,21 @@ AddUserInfo <- function(raw_log, ip_list){
     temp_ip <- temp_row[!is.na(temp_row)] %>% unique
     # If the IP address is included, get the hostname and department
     if (!(identical(temp_ip, character(0)))){
-      temp_ip_row <- filter(ip_list, grepl(str_c("^", temp_ip), IP))
+      temp_ip_row <- filter(ip_list, IP==temp_ip)
+      # Partial match
+      if (nrow(temp_ip_row) == 0){
+        for (j in 1:nrow(partial_ip_list)){
+          if (str_detect(temp_ip, pattern=str_c("^", partial_ip_list[j, "IP"], ".*$"))){
+            temp_ip_row <- partial_ip_list[j, ]
+            break()
+          }
+        }
+      }
       if (nrow(temp_ip_row) == 1){
         output_file[i] <- str_c(output_file[i], ",",temp_ip_row$Hostname, ",", temp_ip_row$User, "," ,temp_ip_row$Department)
       } else if (nrow(temp_ip_row) > 1){
         # Duplicate host name
-        output_file[i] <- str_c(output_file[i], ",",temp_ip_row$Hostname, "（ホスト名重複・要確認）,", temp_ip_row$User, "," ,temp_ip_row$Department)
+        output_file[i] <- str_c(output_file[i], ",",temp_ip_row[1, "Hostname"], "（ホスト名重複・要確認）")
       }
     }
   }
@@ -236,4 +246,4 @@ for (i in 1:length(output_list)){
   write.table(output_list[[i]], str_c(output_path, "/", output_csv_names[i]), col.names=F, row.names=F)
 }
 # Delete all objects
-rm(list = ls())
+#rm(list = ls())
