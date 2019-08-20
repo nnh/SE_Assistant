@@ -1,3 +1,7 @@
+# Format UTM log
+# Mariko Ohtsuka
+# ver.1.0 2019/8/x created
+# ------ library ------
 library("stringr")
 library("dplyr")
 library("tidyr")
@@ -5,6 +9,7 @@ library("readr")
 library("googlesheets")
 library("ssh")
 library("here")
+# ------ function ------
 #' @title
 #' InputStr
 #' @param
@@ -32,6 +37,7 @@ Exit <- function(){
 #' @return
 #' String vector
 ReadLog <- function(input_file_path){
+  os <- .Platform$OS.type  # mac or windows
   con <- file(description=input_file_path, open="rt")
   if (os == "unix"){
     lines <- iconv(readLines(con=con, encoding="utf-8"), from ="utf-8",  to = "utf-8")
@@ -71,9 +77,9 @@ IntToBitVect <- function(x){
 #' @param
 #' x : Vector of 0 or 1 values
 #' @return
-#' integer
+#' Integer
 BitVectToInt<-function(x) {
-  temp <- packBits(rev(c(rep(FALSE, 32-length(x)%%32), as.logical(x))), "integer")
+  temp <- packBits(rev(c(rep(F, 32 - length(x) %% 32), as.logical(x))), "integer")
   return(temp)
 }
 #' @title
@@ -97,7 +103,7 @@ AddUserInfo <- function(raw_log, ip_list){
       # Partial match
       if (nrow(temp_ip_row) == 0){
         for (j in 1:nrow(partial_ip_list)){
-          if (str_detect(temp_ip, pattern=str_c("^", partial_ip_list[j, "IP"], ".*$"))){
+          if (str_detect(temp_ip, pattern=str_c("^", partial_ip_list[j, "IP"], "\\..*$"))){
             temp_ip_row <- partial_ip_list[j, ]
             break()
           }
@@ -113,29 +119,7 @@ AddUserInfo <- function(raw_log, ip_list){
   }
   return(output_file)
 }
-#' @title
-#' RbindIpList
-#' @param
-#' target_df : Data frame to be combined
-#' input_bit_ip : IP address vector
-#' network_octet : Number of bits in the network part
-#' user :"Description" of excluded.csv
-#' @return
-#' Data frame with combined rows
-RbindIpList <- function(target_df, input_bit_ip, network_octet, user){
-  output_bit_ip <- rep(0, 32)
-  output_bit_ip[1:network_octet] <- input_bit_ip[1:network_octet]
-  # Convert binary to decimal
-  output_ip <- str_c(BitVectToInt(output_bit_ip[1:8]), ".",
-                     BitVectToInt(output_bit_ip[9:16]), ".",
-                     BitVectToInt(output_bit_ip[17:24]), ".",
-                     BitVectToInt(output_bit_ip[25:32]))
-  temp_row <- c(output_ip, "", user)
-  names(temp_row) <- colnames(target_df)
-  target_df <- bind_rows(target_df, temp_row)
-  return(target_df)
-}
-# Constant definition
+# ------ Constant definition ------
 kTargetLog <- c("Admin and System Events Report without guest",
                 "Application and Risk Analysis without guest",
                 "Bandwidth and Applications Report without guest",
@@ -143,8 +127,7 @@ kTargetLog <- c("Admin and System Events Report without guest",
                 "User Report without guest")
 kIpAddr <- "[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}"
 kDhcp_header <- c("IP", "v2", "MAC-Address", "Hostname", "v5", "v6", "v7", "VCI", "v9", "v10", "Expiry")
-# Get project path
-os <- .Platform$OS.type  # mac or windows
+# ------ Get project path ------
 parent_path <- here()
 input_path <- str_c(parent_path, "/input")
 ext_path <- str_c(parent_path, "/ext")
@@ -152,6 +135,7 @@ output_path <- str_c(parent_path, "/output")
 if (file.exists(output_path) == F) {
   dir.create(output_path)
 }
+# ------ Main processing ------
 # Read utm log
 file_list <- list.files(input_path)
 target_file_list <- sapply(kTargetLog, GetLogFullName, file_list)
@@ -205,10 +189,8 @@ excluded <- raw_excluded$IP %>%
                   cbind(raw_excluded$Description, stringsAsFactors=F)
 colnames(excluded) <- c("IP", "Subnet_mask", "User")
 temp_excluded <- excluded %>% filter(Subnet_mask != "")
-
-
 for (i in 1:nrow(temp_excluded)){
-  output_bit_ip <- rep(NA, 32)
+  output_bit_ip <- rep(0, 32)
   # Convert IP address to bit
   bit_ip <- temp_excluded[i, "IP"] %>%
               str_split(pattern="\\." ) %>%
@@ -216,18 +198,29 @@ for (i in 1:nrow(temp_excluded)){
                   lapply(IntToBitVect) %>%
                     unlist
   num_subnet_mask <- as.numeric(temp_excluded[i, "Subnet_mask"])
-  temp_host <- num_subnet_mask %% 8
+  temp_host <- 8 - (num_subnet_mask %% 8)
   # Get IP address within network part range
-  if (temp_host > 0){
-    network_octet <- (num_subnet_mask %/% 8) * 8
-    output_bit_ip[1:network_octet] <- bit_ip[1:network_octet]
-    # Binary to decimal
-    temp_subnet <- c(rep(1, temp_host), rep(0, 8 - temp_host)) %>% BitVectToInt
-    temp_start <- network_octet + 1
-    temp_end <- network_octet + 8
-    for (j in temp_subnet:255){
-      output_bit_ip[temp_start:temp_end] <- IntToBitVect(j)
-      excluded <- RbindIpList(excluded, output_bit_ip, temp_end, temp_excluded[i, "User"])
+  if (temp_host > 0 && temp_host < 8){
+    target_octet <- (num_subnet_mask %/% 8) + 1
+    temp_end_bit <- target_octet * 8
+    temp_start_bit <- temp_end_bit - 7
+    temp_bin <- bit_ip[temp_start_bit:num_subnet_mask, drop=F]
+    if (sum(temp_bin) == 0){
+      temp_min <- BitVectToInt(1)
+    } else {
+      temp_min <- c(temp_bin, rep(0, temp_host)) %>% BitVectToInt
+    }
+    temp_max <- c(temp_bin, rep(1, temp_host)) %>% BitVectToInt
+    for (j in temp_min:temp_max){
+      output_bit_ip[1:temp_end_bit] <- c(bit_ip[1:(temp_start_bit - 1)], IntToBitVect(j))
+      if (temp_end_bit < 32) {
+        output_bit_ip[(temp_end_bit + 1):32] <- bit_ip[(temp_end_bit + 1):32]
+      }
+      temp_ip <- str_c(BitVectToInt(output_bit_ip[1:8]), ".",
+                         BitVectToInt(output_bit_ip[9:16]), ".",
+                         BitVectToInt(output_bit_ip[17:24]), ".",
+                         BitVectToInt(output_bit_ip[25:32]))
+      excluded <- rbind(excluded, c(temp_ip, "", temp_excluded[i, "User"]))
     }
   }
 }
