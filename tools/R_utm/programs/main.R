@@ -1,6 +1,6 @@
 # Format UTM log
 # Mariko Ohtsuka
-# ver.1.0 2019/8/x created
+# ver.1.0 2019/8/21 created
 # ------ library ------
 library("stringr")
 library("dplyr")
@@ -20,15 +20,6 @@ library("here")
 InputStr <- function(obj_name, str_prompt){
   temp <- readline(prompt=str_prompt)
   assign(obj_name, temp, env=.GlobalEnv)
-}
-#' @title
-#' Exit function
-#' @description
-#' Exit from this program
-#' @return
-#' No return value
-Exit <- function(){
-  .Internal(.invokeRestart(list(NULL, NULL), NULL))
 }
 #' @title
 #' ReadLog
@@ -59,7 +50,7 @@ GetLogFullName <- function(target, file_list){
   if (length(temp_idx) > 0){
     return(file_list[temp_idx])
   } else {
-    stop(str_c(kTargetLog[i], "をダウンロードして再実行してください"))
+    return(NA)
   }
 }
 #' @title
@@ -91,7 +82,7 @@ BitVectToInt<-function(x) {
 #' List of logs
 AddUserInfo <- function(raw_log, ip_list){
   output_file <- str_replace_all(raw_log, pattern='\"', replacement="")
-  partial_ip_list <- filter(ip_list, !(str_detect(ip_list$IP, pattern=kIpAddr)))
+  partial_ip_list <- ip_list %>% filter(!(str_detect(ip_list$IP, pattern=kIpAddr)))
   for (i in 1:length(output_file)){
     # Determine if an IP address is included
     temp_row <- unlist(strsplit(output_file[i], ",")) %>% str_extract(kIpAddr)
@@ -99,7 +90,7 @@ AddUserInfo <- function(raw_log, ip_list){
     temp_ip <- temp_row[!is.na(temp_row)] %>% unique
     # If the IP address is included, get the hostname and department
     if (!(identical(temp_ip, character(0)))){
-      temp_ip_row <- filter(ip_list, IP==temp_ip)
+      temp_ip_row <- ip_list %>% filter(IP==temp_ip)
       # Partial match
       if (nrow(temp_ip_row) == 0){
         for (j in 1:nrow(partial_ip_list)){
@@ -139,6 +130,10 @@ if (file.exists(output_path) == F) {
 # Read utm log
 file_list <- list.files(input_path)
 target_file_list <- sapply(kTargetLog, GetLogFullName, file_list)
+if (anyNA(target_file_list)) {
+  stop(str_c(kTargetLog[i], "をダウンロードして再実行してください"))
+  target_file_list <- target_file_list[!is.na(target_file_list)]
+}
 raw_log_list <- sapply(str_c(input_path, "/", target_file_list), ReadLog)
 # Get URL list
 address_list <- read.csv(str_c(ext_path, "/sinet.txt"), header=T, as.is=T)
@@ -151,6 +146,7 @@ InputStr("ssh_user", "UTMのユーザー名を入力してください：")
 dhcp_login <- str_c(ssh_user, input_dhcp_login)
 InputStr("ssh_password", "UTMのパスワードを入力してください：")
 session <- ssh_connect(dhcp_login, passwd=ssh_password)
+rm(ssh_password)
 dhcp_raw <- ssh_exec_internal(session, command = "execute dhcp lease-list")
 ssh_disconnect(session)
 # Format DHCP list
@@ -238,5 +234,7 @@ output_csv_names <- names(output_list) %>% str_extract(pattern="[^\\/]*$")
 for (i in 1:length(output_list)){
   write.table(output_list[[i]], str_c(output_path, "/", output_csv_names[i]), col.names=F, row.names=F)
 }
+write.table(df_dhcp, str_c(output_path, "/dhcp.csv"))
+write.table(sinet_table, str_c(output_path, "/sinet_table.csv"))
 # Delete all objects
-#rm(list = ls())
+rm(list = ls())
