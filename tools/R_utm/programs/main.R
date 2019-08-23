@@ -84,7 +84,6 @@ AddUserInfo <- function(raw_log, ip_list){
   output_file <- raw_log %>% str_replace_all(pattern="(?<=[0-9]),(?=[0-9])", replacement="") %>%  # Remove commas for digits
                    gsub(pattern="\"", replacement="", x=., fixed=T) %>%
                      str_replace_all(pattern='^"|"$', replacement="")  # Remove double quotes at the beginning and end of sentence
-  col_max_count <- max(str_count(output_file, ","))
   partial_ip_list <- ip_list %>% filter(!(str_detect(ip_list$IP, pattern=kIpAddr)))
   for (i in 1:length(output_file)){
     # Determine if an IP address is included
@@ -109,11 +108,6 @@ AddUserInfo <- function(raw_log, ip_list){
         # Duplicate host name
         output_file[i] <- str_c(output_file[i], "," ,temp_ip_row[1, "Hostname"], "（ホスト名重複・要確認）")
       }
-    }
-    # カンマを付与
-    temp_col_count <- str_count(output_file[i], ",")
-    if (temp_col_count < col_max_count) {
-      output_file[i] <- as.integer(col_max_count - temp_col_count) %>% str_dup(",", times=.) %>% str_c(output_file[i], .)
     }
   }
   return(output_file)
