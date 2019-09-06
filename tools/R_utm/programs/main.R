@@ -171,7 +171,7 @@ duplicate_hostname <- sinet_table %>%
                               unique %>%
                                 unlist
 sinet_table$Duplicate <- ifelse(sinet_table$Hostname %in% duplicate_hostname, T, F)
-dynamic_ip <- left_join(sinet_table, df_dhcp, by="Hostname") %>%
+dynamic_ip <- right_join(sinet_table, df_dhcp, by="Hostname") %>%
                 select(User="使用者名", Department="部署名", "Hostname", "IP", MAC_Address="MAC-Address", "Duplicate")
 # Get Static IP list
 private_ip <- read.csv(str_c(ext_path, "/static_ip.csv"), as.is=T, na.strings="") %>%
@@ -229,6 +229,22 @@ ip_list <- excluded %>%
              mutate(Department="", Hostname="", MAC_Address="", Duplicate=F) %>%
                select(User, Department, Hostname, IP, MAC_Address, Duplicate) %>%
                  bind_rows(private_ip)
+# add wireless survey terminal by anet
+if (nrow(filter(ip_list, Hostname=="nmccrcMBAir001"))==0){
+  temp_row <- nrow(ip_list) + 1
+  temp_ip_list <- data.frame(matrix(rep(NA, ncol(ip_list)), nrow=1))
+  colnames(temp_ip_list) <- colnames(ip_list)
+  temp_ip_list$User <- "エイネット無線調査"
+  temp_ip_list$Department <- ""
+  temp_ip_list$Hostname <- "nmccrcMBAir001"
+  temp_ip_list$IP <- ""
+  temp_ip_list$MAC_Address <- ""
+  temp_ip_list$Duplicate <- F
+  temp_ip_list$Duplicate <- as.character(temp_ip_list$Duplicate)
+  ip_list <- bind_rows(ip_list, temp_ip_list)
+}
+# NA -> ""
+ip_list[is.na(ip_list)] <- ""
 # Add information such as hostname to the log
 output_list <- sapply(raw_log_list, AddUserInfo, ip_list)
 # output logs
@@ -240,4 +256,4 @@ for (i in 1:length(output_list)){
 write.csv(df_dhcp, str_c(output_path, "/dhcp.csv"))
 write.csv(sinet_table, str_c(output_path, "/sinet_table.csv"), fileEncoding="cp932")
 # Delete all objects
-#rm(list = ls())
+rm(list = ls())
