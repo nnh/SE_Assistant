@@ -1,4 +1,4 @@
-.httr-oauth
+.httr-oauth*
 /input/
 /ext/
 /output/
@@ -8,5 +8,4 @@
 .Rhistory
 .RData
 .Ruserdata
-*.Rda
 
