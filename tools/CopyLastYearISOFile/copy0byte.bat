@@ -15,4 +15,5 @@ copy "%lastKotei%\%isms%\%logdata%PivotalTracker.txt" "%thisDraft%\%isms%\%logda
 copy "%lastKotei%\%isms%\%logdata%UTM.txt" "%thisDraft%\%isms%\%logdata%UTM.txt"
 copy "%lastKotei%\%isms%\%logdata%VPN.txt" "%thisDraft%\%isms%\%logdata%VPN.txt"
 copy "%lastKotei%\%isms%\ISF29 サーバ室作業報告書.txt" "%thisDraft%\%isms%\ISF29 サーバ室作業報告書.txt"
+robocopy "%lastKotei%\%isms%" "%thisDraft%\%isms%" "ISF15 ?X?P*???[???\PIVOTAL TRACKER.pdf"
 pause
