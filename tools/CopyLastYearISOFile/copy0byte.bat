@@ -16,4 +16,7 @@ copy "%lastKotei%\%isms%\%logdata%UTM.txt" "%thisDraft%\%isms%\%logdata%UTM.txt"
 copy "%lastKotei%\%isms%\%logdata%VPN.txt" "%thisDraft%\%isms%\%logdata%VPN.txt"
 copy "%lastKotei%\%isms%\ISF29 サーバ室作業報告書.txt" "%thisDraft%\%isms%\ISF29 サーバ室作業報告書.txt"
 robocopy "%lastKotei%\%isms%" "%thisDraft%\%isms%" "ISF15 スケ*ュール表PIVOTAL TRACKER.pdf"
+set "kyouiku=\Box\Projects\ISO\QMS・ISMS文書\06 その他\研修資料"\
+set "qf30=%kyouiku%\%thisYear%年度"
+echo %qf30% > "%thisDraft%\%qms%\QF30 教育資料.txt"
 pause
