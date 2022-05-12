@@ -7,6 +7,7 @@ set isms=ISMS（情報システム研究室）
 set qms=QMS（情報システム研究室）
 set lastKotei=%isoKirokuDir%\%lastYear%年度\固定
 set thisDraft=%isoKirokuDir%\%thisYear%年度\ドラフト
+set lastDraft=%isoKirokuDir%\%lastYear%年度\ドラフト
 robocopy %lastKotei%\%isms% %thisDraft%\%isms% /max:1
 robocopy %lastKotei%\%qms% %thisDraft%\%qms% /max:1
 copy "%lastKotei%\%isms%\ISF19 仕様書.txt" "%thisDraft%\%isms%\ISF19 仕様書.txt"
@@ -20,4 +21,5 @@ robocopy "%lastKotei%\%isms%" "%thisDraft%\%isms%" "ISF15 スケ*ュール表PIVOTAL T
 set "kyouiku=\Box\Projects\ISO\QMS・ISMS文書\06 その他\研修資料"\
 set "qf30=%kyouiku%\%thisYear%年度"
 echo %qf30% > "%thisDraft%\%qms%\QF30 教育資料.txt"
+robocopy "%lastDraft%\%isms%" "%thisDraft%\%isms%" "ISF20 ネットワーク管理図*.pptx"
 pause
